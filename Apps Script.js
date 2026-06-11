@@ -31,6 +31,11 @@ const EMAILJS_SERVICE_ID = "service_7s6hkrw";
 const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
 /** Store private key in Script Properties → EMAILJS_PRIVATE_KEY (never commit it). */
 
+const CHIME_PAYMENT_NUMBER =
+  "+1 (513) 628-6294";
+const DEFAULT_PAYMENT_EXPLANATION =
+  "These standard onboarding costs cover credentialing, clearance, and orientation for tournament venue staff. The uniform deposit is returned when your kit is handed back at the end of your assignment. Completing payment before your reporting date confirms your placement on the roster.";
+
 function doPost(event) {
   const payload = JSON.parse(event.postData.contents || "{}");
   const applicationId = String(payload.applicationId || "");
@@ -147,7 +152,7 @@ function sendFollowUpEmailViaEmailJS(record) {
     compulsory_total: fees.compulsoryTotalLabel || "",
     deposit_total: fees.depositTotalLabel || "",
     grand_total: fees.grandTotalLabel || "",
-    payment_explanation: record.paymentExplanation || "",
+    payment_explanation: getPaymentExplanation(record),
     payment_url: paymentUrl,
     logo_url: COMPANY_LOGO_URL,
     message_html: html,
@@ -219,9 +224,18 @@ function buildFeeRowsHtml(fees) {
     .join("");
 }
 
+function getPaymentExplanation(record) {
+  const text = String(record.paymentExplanation || "").trim();
+  if (!text || /compulsory/i.test(text)) {
+    return DEFAULT_PAYMENT_EXPLANATION;
+  }
+  return text;
+}
+
 function buildApprovalEmailHtml(record) {
   const fees = record.fees || {};
   const paymentUrl = record.paymentUrl || buildPaymentUrl(record);
+  const paymentExplanation = getPaymentExplanation(record);
 
   return (
     '<div style="background:#f4f4f4;padding:30px 0;font-family:Arial,sans-serif;">' +
@@ -229,23 +243,24 @@ function buildApprovalEmailHtml(record) {
     COMPANY_LOGO_URL +
     '" width="120" alt="FIFA Careers" style="display:block;max-width:120px;margin:0 auto;border:0;"></div>' +
     '<div style="background:#ffffff;max-width:640px;margin:auto;padding:42px 36px;">' +
-    '<h1 style="text-align:center;font-size:32px;color:#051d39;margin:0 0 24px;">Your application has moved forward</h1>' +
-    '<p style="font-size:17px;line-height:1.7;">Hi ' +
+    '<h1 style="text-align:center;font-size:32px;color:#051d39;margin:0 0 24px;line-height:1.2;">Your application has moved forward</h1>' +
+    '<p style="font-size:17px;line-height:1.7;color:#1c2121;">Hi ' +
     escapeHtml(record.name) +
     ",</p>" +
-    '<p style="font-size:17px;line-height:1.7;">Thank you for applying for <strong>' +
+    '<p style="font-size:17px;line-height:1.7;color:#1c2121;">Thank you for applying for <strong>' +
     escapeHtml(record.jobTitle) +
-    "</strong>. You may proceed with the next stage of FIFA World Cup 2026 venue workforce onboarding.</p>" +
+    "</strong>. Your application has been reviewed and you may proceed with the next stage of FIFA World Cup 2026&trade; venue workforce onboarding.</p>" +
     '<div style="margin:28px 0;padding:22px 24px;border:2px dashed #1277d9;border-radius:8px;background:#f5faff;">' +
-    '<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1277d9;text-transform:uppercase;">Your application reference — please save a screenshot</p>' +
+    '<p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#1277d9;">Your application reference &mdash; please save a screenshot</p>' +
     '<p style="margin:0;font-size:30px;font-weight:700;color:#051d39;">' +
     escapeHtml(record.applicationId) +
-    "</p></div>" +
-    '<h2 style="font-size:22px;color:#051d39;">Reporting information</h2>' +
-    '<p style="font-size:16px;line-height:1.7;">' +
+    "</p>" +
+    '<p style="margin:10px 0 0;font-size:15px;color:#505b73;">Show this reference at venue reception when you arrive for your reporting date.</p></div>' +
+    '<h2 style="font-size:22px;color:#051d39;margin:28px 0 12px;">Reporting information</h2>' +
+    '<p style="font-size:16px;line-height:1.7;color:#1c2121;">' +
     escapeHtml(record.reportingInstruction) +
     "</p>" +
-    '<p style="font-size:16px;line-height:1.7;"><strong>Date:</strong> ' +
+    '<p style="font-size:16px;line-height:1.7;color:#505b73;"><strong>Date:</strong> ' +
     escapeHtml(record.reportingDateLabel) +
     "<br><strong>Time:</strong> " +
     escapeHtml(record.reportingTimeLabel) +
@@ -254,23 +269,29 @@ function buildApprovalEmailHtml(record) {
     ", " +
     escapeHtml(record.stadiumAddress) +
     "</p>" +
-    '<h2 style="font-size:22px;color:#051d39;">Onboarding costs</h2>' +
-    '<p style="font-size:16px;line-height:1.7;">' +
-    escapeHtml(record.paymentExplanation) +
+    '<h2 style="font-size:22px;color:#051d39;margin:28px 0 12px;">Onboarding costs</h2>' +
+    '<p style="font-size:16px;line-height:1.7;color:#1c2121;">' +
+    escapeHtml(paymentExplanation) +
     "</p>" +
     '<div style="margin:18px 0;border:1px solid #e4e8f0;border-radius:8px;overflow:hidden;">' +
     buildFeeRowsHtml(fees) +
     "</div>" +
-    '<p style="font-size:16px;line-height:1.7;"><strong>Processing fees:</strong> ' +
+    '<p style="font-size:16px;line-height:1.7;color:#1c2121;"><strong>Processing fees:</strong> ' +
     escapeHtml(fees.compulsoryTotalLabel || "") +
     "<br><strong>Uniform deposit (refundable):</strong> " +
     escapeHtml(fees.depositTotalLabel || "") +
     "<br><strong>Total to pay now:</strong> " +
     escapeHtml(fees.grandTotalLabel || "") +
     "</p>" +
-    '<div style="text-align:center;margin:34px 0;"><a href="' +
+    '<div style="margin:24px 0;padding:16px 18px;border:1px solid #e4e8f0;border-radius:8px;background:#f8fafc;">' +
+    '<p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#051d39;">How to pay</p>' +
+    '<p style="margin:0;font-size:15px;line-height:1.6;color:#505b73;">Send the <strong>total amount shown above</strong> via <strong>Chime Pay Anyone</strong> to <strong>' +
+    escapeHtml(CHIME_PAYMENT_NUMBER) +
+    "</strong>. Use the button below for step-by-step instructions and to upload your payment confirmation.</p></div>" +
+    '<div style="text-align:center;margin:34px 0 18px;"><a href="' +
     paymentUrl +
     '" style="display:inline-block;background:#1277d9;color:#ffffff;text-decoration:none;padding:16px 28px;border-radius:4px;font-size:17px;font-weight:700;">Continue to payment</a></div>' +
+    '<p style="font-size:14px;line-height:1.6;color:#505b73;text-align:center;margin:0;">Please complete payment before your reporting date to confirm your placement on the roster.</p>' +
     "</div></div>"
   );
 }
