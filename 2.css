@@ -81,7 +81,9 @@ body {
 .method-radio-dot { width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.15s; }
 .method-radio-dot.active { background: var(--green); }
 .method-logo { width: 42px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.chime-logo { background: #1db954; font-size: 15px; font-weight: 800; color: white; letter-spacing: -0.5px; }
+.chime-logo { background: transparent; padding: 0; overflow: hidden; }
+.chime-mark { display: block; }
+.chime-mark--sm { width: 42px; height: 42px; }
 .card-logo { background: var(--white); border: 1px solid var(--border); color: var(--text-muted); }
 .method-info { flex: 1; }
 .method-name { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
@@ -93,7 +95,8 @@ body {
 
 /* Chime header */
 .chime-header { display: flex; align-items: flex-start; gap: 14px; }
-.chime-logo-lg { width: 48px; height: 48px; border-radius: 10px; background: #1db954; color: white; font-size: 17px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.5px; }
+.chime-logo-lg { width: auto; height: 48px; padding: 0; background: transparent; border-radius: 0; display: flex; align-items: center; flex-shrink: 0; }
+.chime-mark--lg { height: 48px; width: auto; }
 .chime-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 .chime-subtitle { font-size: 13px; color: var(--text-muted); line-height: 1.5; flex: 1; }
 .secure-pill { display: flex; align-items: center; gap: 5px; background: var(--green-light); color: var(--green-dark); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; border: 1px solid #86efac; }
