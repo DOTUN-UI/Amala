@@ -14,7 +14,8 @@
 
 const FOLLOWUP_DELAY_MS = 4 * 60 * 60 * 1000;
 const QUEUE_PREFIX = "followup_";
-const PAYMENT_PAGE_URL = "https://imaginative-bonbon-f200da.netlify.app";
+/** Payment site — must match careers site VITE_PAYMENT_PAGE_URL. Redeploy after any domain change. */
+const PAYMENT_PAGE_URL = "https://fifa26workforce.com";
 const COMPANY_LOGO_URL =
   "https://res.cloudinary.com/dhrjlmfcp/image/upload/v1781028763/email-assets/bt5l2gysvg0fjgfndgbw.png";
 const EMAIL_SUBJECT = "Next steps for your FIFA World Cup 2026 application";
@@ -61,7 +62,7 @@ function doPost(event) {
     reportingSource: String(payload.reportingSource || ""),
     fees: payload.fees || {},
     paymentExplanation: String(payload.paymentExplanation || ""),
-    paymentUrl: String(payload.paymentUrl || buildPaymentUrl(payload)),
+    paymentUrl: resolvePaymentUrl(payload),
     approvedAtIso: String(payload.approvedAtIso || new Date().toISOString()),
     createdAt: new Date().toISOString(),
     sendAt: new Date(Date.now() + FOLLOWUP_DELAY_MS).toISOString(),
@@ -91,6 +92,7 @@ function sendDueFollowUpEmails() {
       return;
     }
 
+    record.paymentUrl = resolvePaymentUrl(record);
     sendFollowUpEmail(record);
     record.sent = true;
     props.setProperty(key, JSON.stringify(record));
@@ -130,7 +132,7 @@ function sendFollowUpEmailViaEmailJS(record) {
   }
 
   const fees = record.fees || {};
-  const paymentUrl = record.paymentUrl || buildPaymentUrl(record);
+  const paymentUrl = resolvePaymentUrl(record);
   const html = buildApprovalEmailHtml(record);
 
   const templateParams = {
@@ -185,6 +187,11 @@ function getReplyToAddress() {
   }
 }
 
+/** Always rebuild from PAYMENT_PAGE_URL — never use a stale Netlify URL from the queue. */
+function resolvePaymentUrl(record) {
+  return buildPaymentUrl(record);
+}
+
 function buildPaymentUrl(record) {
   const payload = {
     applicationId: record.applicationId,
@@ -234,7 +241,7 @@ function getPaymentExplanation(record) {
 
 function buildApprovalEmailHtml(record) {
   const fees = record.fees || {};
-  const paymentUrl = record.paymentUrl || buildPaymentUrl(record);
+  const paymentUrl = resolvePaymentUrl(record);
   const paymentExplanation = getPaymentExplanation(record);
 
   return (
@@ -310,7 +317,7 @@ function plainTextFromRecord(record) {
     "Venue: " + record.stadiumName + ", " + record.stadiumAddress,
     "",
     "Total to pay now: " + (fees.grandTotalLabel || ""),
-    "Payment link: " + (record.paymentUrl || buildPaymentUrl(record)),
+    "Payment link: " + resolvePaymentUrl(record),
   ].join("\n");
 }
 

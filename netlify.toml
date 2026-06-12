@@ -1,0 +1,5 @@
+# Partner payment site — deploy from repo root (index.html).
+# Add custom domain fifa26workforce.com in Netlify → Domain management.
+
+[build]
+  publish = "."
