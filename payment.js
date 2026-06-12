@@ -105,6 +105,15 @@ function buildFallbackFees(roleKey) {
   }));
 }
 
+function formatHeroRole(jobTitle) {
+  const title = String(jobTitle || "").trim();
+  return title ? `${title} — FIFA World Cup 2026` : "FIFA World Cup 2026";
+}
+
+function formatRoleName(jobTitle) {
+  return String(jobTitle || "").trim() || "your selected role";
+}
+
 function loadPageData() {
   const payload = decodePayload();
   const params = new URLSearchParams(window.location.search);
@@ -115,13 +124,14 @@ function loadPageData() {
   }
 
   const applicationId = params.get("applicationId") || generateApplicationId();
-  const roleKey = (params.get("role") || "tournament_ops").toLowerCase();
+  const roleKey = (params.get("role") || "standard").toLowerCase();
   const items = buildFallbackFees(roleKey);
+  const jobTitle = params.get("jobTitle") || "";
 
   document.getElementById("application-id").textContent = applicationId;
   sessionStorage.setItem("applicationId", applicationId);
-  document.getElementById("hero-role").textContent = roleKey.replace(/_/g, " ") + " — FIFA World Cup 2026";
-  sessionStorage.setItem("roleName", roleKey);
+  document.getElementById("hero-role").textContent = formatHeroRole(jobTitle);
+  sessionStorage.setItem("roleName", formatRoleName(jobTitle));
 
   renderFeeItems(items);
 }
@@ -129,9 +139,8 @@ function loadPageData() {
 function applyPayload(payload) {
   document.getElementById("application-id").textContent = payload.applicationId;
   sessionStorage.setItem("applicationId", payload.applicationId);
-  document.getElementById("hero-role").textContent =
-    payload.jobTitle || "Tournament operations role — FIFA World Cup 2026";
-  sessionStorage.setItem("roleName", payload.jobTitle || payload.role || "Tournament operations");
+  document.getElementById("hero-role").textContent = formatHeroRole(payload.jobTitle);
+  sessionStorage.setItem("roleName", formatRoleName(payload.jobTitle));
 
   const nameInput = document.getElementById("sender-name");
   const emailInput = document.getElementById("sender-email");
@@ -139,7 +148,7 @@ function applyPayload(payload) {
   if (emailInput && payload.email) emailInput.value = payload.email;
 
   const fees = payload.fees || {};
-  const items = fees.items || buildFallbackFees(payload.role || "tournament_ops");
+  const items = fees.items || buildFallbackFees(payload.role || "standard");
   renderFeeItems(items, fees.paymentExplanation || payload.paymentExplanation);
 
   const reportingSection = document.getElementById("reporting-section");
@@ -188,9 +197,6 @@ function renderFeeItems(items, explanation) {
     .join("");
 
   const total = nonRefundable + depositTotal;
-  document.getElementById("fee-total-amount").textContent = `$${total.toFixed(2)}`;
-  document.getElementById("fee-total-note").textContent =
-    `($${nonRefundable.toFixed(2)} processing + $${depositTotal.toFixed(2)} refundable deposit)`;
   document.getElementById("payment-amount").textContent = `$${total.toFixed(2)}`;
   document.getElementById("confirm-amount").textContent = `$${total.toFixed(2)}`;
   sessionStorage.setItem("feeAmount", String(total));
@@ -325,7 +331,7 @@ function submitPayment() {
     applicantName: document.getElementById("sender-name").value.trim(),
     applicantEmail: document.getElementById("sender-email").value.trim(),
     transactionRef: document.getElementById("transaction-ref").value.trim(),
-    role: sessionStorage.getItem("roleName") || "Tournament Operations",
+    role: sessionStorage.getItem("roleName") || "your selected role",
     amount: sessionStorage.getItem("feeAmount") || "85.00",
     paymentMethod: "Chime Pay Anyone",
     confirmationRef: "CONF-" + Date.now(),
