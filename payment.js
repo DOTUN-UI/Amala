@@ -163,12 +163,17 @@ function applyPayload(payload) {
   if (reportingSection && payload.reportingDateLabel) {
     reportingSection.hidden = false;
     document.getElementById("reporting-text").textContent =
-      payload.reportingInstruction || "Please report to venue reception on the date below.";
+      normalizeReportingInstruction(payload.reportingInstruction) ||
+      "Please report to venue reception on the date below.";
     document.getElementById("reporting-meta").textContent =
       `Date: ${payload.reportingDateLabel} · Time: ${payload.reportingTimeLabel || "8:00 AM"}`;
     const venue = [payload.stadiumName, payload.stadiumAddress].filter(Boolean).join(", ");
     if (venue) document.getElementById("reporting-venue").textContent = `Venue: ${venue}`;
   }
+}
+
+function normalizeReportingInstruction(text) {
+  return String(text || "").replace(/\(shown below\)/gi, "(shown above)");
 }
 
 function renderFeeItems(items, explanation) {

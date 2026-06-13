@@ -316,7 +316,7 @@ function buildPaymentUrl(record) {
     stadiumAddress: record.stadiumAddress,
     reportingDateLabel: record.reportingDateLabel,
     reportingTimeLabel: record.reportingTimeLabel,
-    reportingInstruction: record.reportingInstruction,
+    reportingInstruction: normalizeReportingInstruction(record.reportingInstruction),
     fees: record.fees || {},
     paymentExplanation: record.paymentExplanation || "",
   };
