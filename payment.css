@@ -337,7 +337,7 @@ input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(10,22,40,0.0
 
   .method-radio { grid-area: radio; }
   .method-logo { grid-area: logo; width: 38px; height: 38px; min-width: 38px; }
-  .chime-logo { min-width: 38px; height: 38px; padding: 6px 8px; }
+  .chime-logo { min-width: auto; height: auto; padding: 0; }
   .method-info { grid-area: info; min-width: 0; }
   .method-name { font-size: 13px; line-height: 1.35; }
   .method-desc { font-size: 11px; }
