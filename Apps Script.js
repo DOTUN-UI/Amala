@@ -27,8 +27,7 @@ const EMAIL_SENDER = "emailjs";
 
 const EMAILJS_PUBLIC_KEY = "F34PJBkDeDBtVEddl";
 const EMAILJS_SERVICE_ID = "service_scveg1v";
-/** Replace after creating Email 2 template in EmailJS dashboard. */
-const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
+const EMAILJS_APPROVAL_TEMPLATE_ID = "template_ww0808o";
 
 const BREVO_SENDER_NAME = "FIFA Careers";
 /** Must be a verified sender in Brevo (Settings → Senders, domains & IPs). */
