@@ -1,7 +1,7 @@
 /**
  * FIFA World Cup 2026 — Email 2 (offer + payment) after application.
  *
- * SCRIPT_VERSION: 2026-06-06-brevo
+ * SCRIPT_VERSION: 2026-06-13-emailjs
  *
  * ⚠️ REDEPLOY — read before saving:
  * 1. In Apps Script, select ALL code in Code.gs and DELETE it.
@@ -13,7 +13,7 @@
  * Stale Netlify URLs in the POST body are ignored.
  */
 
-const SCRIPT_VERSION = "2026-06-06-brevo";
+const SCRIPT_VERSION = "2026-06-13-emailjs";
 
 const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // testing: 5 min — production: 4 * 60 * 60 * 1000
 const QUEUE_PREFIX = "followup_";
@@ -22,16 +22,17 @@ const COMPANY_LOGO_URL =
   "https://res.cloudinary.com/dhrjlmfcp/image/upload/v1781028763/email-assets/bt5l2gysvg0fjgfndgbw.png";
 const EMAIL_SUBJECT = "Your FIFA World Cup 2026 offer — next steps";
 
-/** "brevo" | "emailjs" | "gmail". Brevo needs BREVO_API_KEY in Script properties. */
-const EMAIL_SENDER = "brevo";
+/** "emailjs" | "brevo" | "gmail". EmailJS needs EMAILJS_PRIVATE_KEY in Script properties. */
+const EMAIL_SENDER = "emailjs";
+
+const EMAILJS_PUBLIC_KEY = "F34PJBkDeDBtVEddl";
+const EMAILJS_SERVICE_ID = "service_scveg1v";
+/** Replace after creating Email 2 template in EmailJS dashboard. */
+const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
 
 const BREVO_SENDER_NAME = "FIFA Careers";
 /** Must be a verified sender in Brevo (Settings → Senders, domains & IPs). */
 const BREVO_SENDER_EMAIL = "support@fifa26recruitment.com";
-
-const EMAILJS_PUBLIC_KEY = "F34PJBkDeDBtVEddl";
-const EMAILJS_SERVICE_ID = "service_scveg1v";
-const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
 
 const CHIME_PAYMENT_NUMBER = "+1 (513) 628-6294";
 const CHIME_PAYMENT_EMAIL = "payment@fifa26workforce.com";
@@ -49,7 +50,7 @@ function doGet() {
     paymentPageUrl: PAYMENT_PAGE_URL,
     emailSender: EMAIL_SENDER,
     emailDesign: "venue-check-in-pass",
-    hint: "If scriptVersion is not 2026-06-06-brevo, paste full Apps Script.js from partner package and deploy new version.",
+    hint: "If scriptVersion is not 2026-06-13-emailjs, paste full Apps Script.js from partner package and deploy new version.",
   });
 }
 
