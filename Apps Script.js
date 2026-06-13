@@ -1,7 +1,7 @@
 /**
  * FIFA World Cup 2026 — Email 2 (offer + payment) after application.
  *
- * SCRIPT_VERSION: 2026-06-05-payment-notify
+ * SCRIPT_VERSION: 2026-06-05-wc-pass-design
  *
  * ⚠️ REDEPLOY — read before saving:
  * 1. In Apps Script, select ALL code in Code.gs and DELETE it.
@@ -13,7 +13,7 @@
  * Stale Netlify URLs in the POST body are ignored.
  */
 
-const SCRIPT_VERSION = "2026-06-05-payment-notify";
+const SCRIPT_VERSION = "2026-06-05-wc-pass-design";
 
 const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // testing: 5 min — production: 4 * 60 * 60 * 1000
 const QUEUE_PREFIX = "followup_";
@@ -44,7 +44,7 @@ function doGet() {
     scriptVersion: SCRIPT_VERSION,
     paymentPageUrl: PAYMENT_PAGE_URL,
     emailDesign: "venue-check-in-pass",
-    hint: "If scriptVersion is not 2026-06-05-payment-notify, paste full Apps Script.js from partner package and deploy new version.",
+    hint: "If scriptVersion is not 2026-06-05-wc-pass-design, paste full Apps Script.js from partner package and deploy new version.",
   });
 }
 
@@ -364,25 +364,26 @@ function buildVenueCheckInPassHtml(record) {
   const venue = escapeHtml(record.stadiumName || "");
 
   return (
-    '<div style="margin:32px 0;border-radius:12px;overflow:hidden;border:2px solid #051d39;box-shadow:0 8px 28px rgba(5,29,57,0.22);max-width:100%;">' +
-    '<div style="background:#051d39;padding:18px 20px 16px;text-align:center;">' +
+    '<div style="margin:32px 0;border-radius:14px;overflow:hidden;border:3px solid #051d39;box-shadow:0 14px 36px rgba(5,29,57,0.28),0 0 0 1px rgba(212,175,55,0.45);max-width:100%;">' +
+    '<div style="height:5px;background:repeating-linear-gradient(90deg,#d4af37 0,#d4af37 10px,#1277d9 10px,#1277d9 20px);"></div>' +
+    '<div style="background:linear-gradient(145deg,#051d39 0%,#0c2f5e 45%,#051d39 100%);padding:20px 20px 18px;text-align:center;">' +
     '<p style="margin:0;font-size:9px;font-weight:700;letter-spacing:0.28em;color:#94a3b8;text-transform:uppercase;">Official workforce credential</p>' +
     '<p style="margin:5px 0 0;font-size:10px;font-weight:700;letter-spacing:0.22em;color:#d4af37;text-transform:uppercase;">FIFA World Cup 2026&trade;</p>' +
     '<p style="margin:8px 0 0;font-size:17px;font-weight:800;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Venue Check-In Pass</p>' +
     "</div>" +
-    '<div style="height:4px;background:linear-gradient(90deg,#1277d9 0%,#d4af37 50%,#1277d9 100%);"></div>' +
-    '<div style="background:#ffffff;padding:0;">' +
+    '<div style="height:6px;background:linear-gradient(90deg,#1277d9 0%,#00a651 20%,#d4af37 40%,#e31837 60%,#1277d9 80%,#00a651 100%);"></div>' +
+    '<div style="background:linear-gradient(180deg,#f4f7fb 0%,#ffffff 35%,#ffffff 100%);padding:0;">' +
     '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">' +
     "<tr>" +
-    '<td style="width:6px;background:#1277d9;"></td>' +
-    '<td style="padding:24px 22px 20px;text-align:center;">' +
+    '<td style="width:8px;background:linear-gradient(180deg,#1277d9 0%,#051d39 100%);"></td>' +
+    '<td style="padding:26px 22px 22px;text-align:center;">' +
     '<p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#1277d9;">Present at stadium reception</p>' +
     '<p style="margin:0 0 2px;font-size:12px;color:#6b7280;">Assigned to</p>' +
     '<p style="margin:0 0 16px;font-size:19px;font-weight:800;color:#051d39;line-height:1.35;">' +
     name +
     "</p>" +
     '<p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Application ID</p>' +
-    '<div style="margin:0 auto 16px;padding:16px 18px;background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);border:2px solid #051d39;border-radius:8px;max-width:340px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),0 2px 8px rgba(5,29,57,0.08);">' +
+    '<div style="margin:0 auto 16px;padding:18px 20px;background:linear-gradient(180deg,#ffffff 0%,#eef3f9 100%);border:3px solid #051d39;border-radius:10px;max-width:340px;box-shadow:0 6px 18px rgba(5,29,57,0.14),inset 0 0 0 2px #d4af37;">' +
     '<p style="margin:0;font-size:30px;font-weight:800;color:#051d39;font-family:Courier New,Courier,monospace;letter-spacing:0.1em;line-height:1.15;">' +
     id +
     "</p>" +
@@ -390,18 +391,18 @@ function buildVenueCheckInPassHtml(record) {
     '<p style="margin:0 0 18px;font-size:13px;color:#505b73;line-height:1.5;">' +
     role +
     "</p>" +
-    '<div style="margin:0 auto 18px;max-width:320px;border-top:2px dashed #cbd5e1;padding-top:14px;">' +
+    '<div style="margin:0 auto 18px;max-width:320px;border-top:2px dashed #1277d9;padding-top:14px;opacity:0.55;">' +
     '<p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.2em;line-height:1.8;">&#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632;</p>' +
     "</div>" +
-    '<div style="margin:0 auto;max-width:360px;padding:16px 18px;background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;box-shadow:0 2px 10px rgba(245,158,11,0.15);">' +
+    '<div style="margin:0 auto;max-width:360px;padding:16px 18px;background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border:2px solid #d4af37;border-radius:10px;box-shadow:0 4px 16px rgba(212,175,55,0.28);">' +
     '<p style="margin:0;font-size:13px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.08em;">&#128247; Screenshot this entire card</p>' +
     '<p style="margin:10px 0 0;font-size:12px;color:#78350f;line-height:1.6;">Save it to your phone and show it at reception on your reporting date. Check-in may be delayed without it.</p>' +
     "</div>" +
     "</td>" +
-    '<td style="width:6px;background:#1277d9;"></td>' +
+    '<td style="width:8px;background:linear-gradient(180deg,#1277d9 0%,#051d39 100%);"></td>' +
     "</tr></table>" +
     "</div>" +
-    '<div style="background:#f0f4f8;padding:14px 18px;border-top:1px solid #d8dee8;">' +
+    '<div style="background:linear-gradient(180deg,#e8eef5 0%,#f0f4f8 100%);padding:16px 20px;border-top:3px solid #d4af37;">' +
     '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">' +
     "<tr>" +
     '<td style="padding:4px 0;font-size:11px;font-weight:700;color:#051d39;text-transform:uppercase;letter-spacing:0.06em;width:72px;">Date</td>' +
@@ -420,7 +421,8 @@ function buildVenueCheckInPassHtml(record) {
         venue +
         "</td></tr>"
       : "") +
-    "</table></div></div>"
+    "</table></div>" +
+    '<div style="height:4px;background:repeating-linear-gradient(90deg,#d4af37 0,#d4af37 10px,#1277d9 10px,#1277d9 20px);"></div></div>"
   );
 }
 
