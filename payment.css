@@ -121,7 +121,10 @@ body {
 .phone-box { background: var(--off-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 10px; }
 .phone-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
 .phone-number { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: 0.04em; font-family: monospace; }
+.email-box { margin-top: 14px; }
+.payment-email { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; font-family: monospace; }
 .copy-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: var(--white); border: 1.5px solid var(--navy); border-radius: var(--radius); font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
+.copy-btn + .copy-btn { margin-top: 10px; }
 .copy-btn:hover { background: var(--navy); color: var(--white); }
 .copy-btn.copied { background: var(--green); border-color: var(--green); color: var(--white); }
 
@@ -353,4 +356,37 @@ input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(10,22,40,0.0
   .fee-row-amount { align-self: flex-end; }
   .fees-total-row { flex-direction: column; align-items: flex-start; }
   .fees-total-right { text-align: left; }
+}
+.chime-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.chime-logo__img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.card-brand-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.card-brand {
+  height: 16px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.card-brand--verve {
+  height: 18px;
 }
