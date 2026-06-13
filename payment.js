@@ -9,7 +9,7 @@ const CONFIG = {
   paymentScriptUrl:
     "https://script.google.com/macros/s/AKfycbxHATyBoGmfaWeNnx6Q42EK6sIVGrakQ5TX7ZOlUgGWpT4XVaS7HNr653Q1bHeHL6p1/exec",
   chimeLogoUrl:
-    "https://res.cloudinary.com/dibwotfd5/image/upload/v1781311107/bme1s9ilcwjmxis8hj2p.svg",
+    "https://res.cloudinary.com/dibwotfd5/image/upload/v1781311250/yje9b6qy8fmlun4qf4f6.svg",
 };
 
 const ICONS = {
