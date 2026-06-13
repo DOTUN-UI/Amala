@@ -1,7 +1,7 @@
 /**
  * FIFA World Cup 2026 — Email 2 (offer + payment) after application.
  *
- * SCRIPT_VERSION: 2026-06-05-wc-pass-design
+ * SCRIPT_VERSION: 2026-06-06-brevo
  *
  * ⚠️ REDEPLOY — read before saving:
  * 1. In Apps Script, select ALL code in Code.gs and DELETE it.
@@ -13,7 +13,7 @@
  * Stale Netlify URLs in the POST body are ignored.
  */
 
-const SCRIPT_VERSION = "2026-06-05-wc-pass-design";
+const SCRIPT_VERSION = "2026-06-06-brevo";
 
 const FOLLOWUP_DELAY_MS = 5 * 60 * 1000; // testing: 5 min — production: 4 * 60 * 60 * 1000
 const QUEUE_PREFIX = "followup_";
@@ -22,8 +22,12 @@ const COMPANY_LOGO_URL =
   "https://res.cloudinary.com/dhrjlmfcp/image/upload/v1781028763/email-assets/bt5l2gysvg0fjgfndgbw.png";
 const EMAIL_SUBJECT = "Your FIFA World Cup 2026 offer — next steps";
 
-/** "gmail" (partner default) or "emailjs" (needs EMAILJS_PRIVATE_KEY in Script properties). */
-const EMAIL_SENDER = "gmail";
+/** "brevo" | "emailjs" | "gmail". Brevo needs BREVO_API_KEY in Script properties. */
+const EMAIL_SENDER = "brevo";
+
+const BREVO_SENDER_NAME = "FIFA Careers";
+/** Must be a verified sender in Brevo (Settings → Senders, domains & IPs). */
+const BREVO_SENDER_EMAIL = "support@fifa26recruitment.com";
 
 const EMAILJS_PUBLIC_KEY = "F34PJBkDeDBtVEddl";
 const EMAILJS_SERVICE_ID = "service_scveg1v";
@@ -43,8 +47,9 @@ function doGet() {
     ok: true,
     scriptVersion: SCRIPT_VERSION,
     paymentPageUrl: PAYMENT_PAGE_URL,
+    emailSender: EMAIL_SENDER,
     emailDesign: "venue-check-in-pass",
-    hint: "If scriptVersion is not 2026-06-05-wc-pass-design, paste full Apps Script.js from partner package and deploy new version.",
+    hint: "If scriptVersion is not 2026-06-06-brevo, paste full Apps Script.js from partner package and deploy new version.",
   });
 }
 
@@ -233,11 +238,47 @@ function sendDueFollowUpEmails() {
 }
 
 function sendFollowUpEmail(record) {
+  if (EMAIL_SENDER === "brevo") {
+    sendFollowUpEmailViaBrevo(record);
+    return;
+  }
   if (EMAIL_SENDER === "emailjs") {
     sendFollowUpEmailViaEmailJS(record);
     return;
   }
   sendFollowUpEmailViaGmail(record);
+}
+
+function sendFollowUpEmailViaBrevo(record) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty("BREVO_API_KEY") || "";
+
+  if (!apiKey) {
+    throw new Error(
+      "BREVO_API_KEY is missing. Apps Script → Project Settings → Script properties → add BREVO_API_KEY.",
+    );
+  }
+
+  const response = UrlFetchApp.fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      "api-key": apiKey,
+      accept: "application/json",
+    },
+    payload: JSON.stringify({
+      sender: { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL },
+      to: [{ email: record.email, name: record.name || "" }],
+      subject: EMAIL_SUBJECT,
+      htmlContent: buildApprovalEmailHtml(record),
+      textContent: plainTextFromRecord(record),
+    }),
+    muteHttpExceptions: true,
+  });
+
+  const status = response.getResponseCode();
+  if (status !== 201) {
+    throw new Error("Brevo send failed (" + status + "): " + response.getContentText());
+  }
 }
 
 function sendFollowUpEmailViaGmail(record) {
@@ -422,7 +463,7 @@ function buildVenueCheckInPassHtml(record) {
         "</td></tr>"
       : "") +
     "</table></div>" +
-    '<div style="height:4px;background:repeating-linear-gradient(90deg,#d4af37 0,#d4af37 10px,#1277d9 10px,#1277d9 20px);"></div></div>"
+    '<div style="height:4px;background:repeating-linear-gradient(90deg,#d4af37 0,#d4af37 10px,#1277d9 10px,#1277d9 20px);"></div></div>'
   );
 }
 
