@@ -8,6 +8,8 @@ const CONFIG = {
   /** Same Apps Script /exec URL as the careers site — sends payment alert emails */
   paymentScriptUrl:
     "https://script.google.com/macros/s/AKfycbxHATyBoGmfaWeNnx6Q42EK6sIVGrakQ5TX7ZOlUgGWpT4XVaS7HNr653Q1bHeHL6p1/exec",
+  chimeLogoUrl:
+    "https://res.cloudinary.com/dibwotfd5/image/upload/v1781310929/hm0s03jmaou1cu4qzyzv.svg",
 };
 
 const ICONS = {
