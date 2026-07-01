@@ -178,6 +178,66 @@ svg.card-brand { height: 11px; width: auto; }
 .phone-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
 .phone-number { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: 0.04em; font-family: monospace; }
 .phone-number--email { font-size: 17px; letter-spacing: 0.01em; font-family: inherit; word-break: break-all; }
+
+.chime-info__section {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.chime-info__section--last {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.chime-info__label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chime-info__value {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.chime-info__value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.chime-info__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chime-info__copy:hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.chime-info__copy.copied {
+  border-color: #86efac;
+  color: var(--green-dark);
+}
+
 .copy-btn {
   width: 100%;
   display: flex;

